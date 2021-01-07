@@ -1,0 +1,138 @@
+# QUESTION B6 ATTEMPT #1
+import sympy as sym
+
+#constants
+
+m, g, d, delta, r, R, L0, L1, alpha, c, k, b, phi = sym.symbols('m, g, d, delta, r, R, L0, L1, alpa, c, k, b, theta')
+
+#  System variables
+z1, z2, z3, V = sym.symbols('z1, z2, z3, V')
+
+# Define  sigma
+sigma= 5*(((c*(z3**2))/((delta-z1)**2))+m*g*sym.sin(phi)-k*z1-k*d-b*z2)
+sigma /= 7*m
+
+# Define ψ  (psi)
+psi = V-z3*R
+psi /= L0+L1*sym.exp(-alpha*(delta-z1))
+
+
+# determine the partial derivatives of Φ (sigma), wrt to z1, z2, z3
+
+sigma_deriv_z1 = sigma.diff(z1)
+sigma_deriv_z2 = sigma.diff(z2)
+sigma_deriv_z3 = sigma.diff(z3)
+
+# determine the partial derivatives of ψ  (psi), wrt to V, z1, z3
+
+psi_deriv_V = psi.diff(V)
+psi_deriv_z1 = psi.diff(z1)
+psi_deriv_z3 = psi.diff(z3)
+
+# set the initial conditions
+
+x_min = d+(m*g*sym.sin(phi))/k  # the min x at equilibrium form question
+x_max = delta                   # the max x at equilibrium form question
+
+z1e = 0.75*x_min+0.25*x_max     # the equation for z1e from question
+z3e = sym.sqrt(((delta-z1e)**2*(k*z1e-k*d-m*g*sym.sin(phi)))/c) #rearranging equation (1.18) in PDF
+Ve = z3e*R  # equation (1.19) in PDF
+z2e= sym.symbols('z2e')
+
+def evaluate_at_equilibrium(f):     # evaluting equilibrium function
+    return f.subs([(z1, z1e), (z2, z2e), (z3, z3e), (V, Ve)])
+
+# Computes the derivatives of Φ (phi) at equilibrium point
+
+sigma_deriv_z1_at_equlibrium = evaluate_at_equilibrium(sigma.diff(z1))    # Φ (sigma) derivative of F at equilibrium
+
+sigma_deriv_z2_at_equlibrium = evaluate_at_equilibrium(sigma.diff(z2))  # Φ (sigma) derivative of x3 at equilibrium
+
+sigma_deriv_z3_at_equlibrium = evaluate_at_equilibrium(sigma.diff(z3))  # Φ (sigma) derivative of x4 at equilibrium
+# Computes the derivatives of ψ  (psi) at equilibrium point
+
+psi_deriv_V_at_equlibrium = evaluate_at_equilibrium(psi.diff(V))    # ψ  (psi) derivative of F at equilibrium
+
+psi_deriv_z1_at_equlibrium = evaluate_at_equilibrium(psi.diff(z1))  # ψ  (psi) derivative of x3 at equilibrium
+
+psi_deriv_z3_at_equlibrium = evaluate_at_equilibrium(psi.diff(z3))  # ψ  (psi) derivative of x4 at equilibrium
+#z2'=a1z1'+a2z2'+a3z3'
+
+a_1 = sigma_deriv_z1_at_equlibrium
+a_2 = sigma_deriv_z2_at_equlibrium
+a_3 = sigma_deriv_z3_at_equlibrium
+
+#z3'=h1z1'+h2z2'+h3z3'
+
+h_1 = psi_deriv_V_at_equlibrium
+h_2 = psi_deriv_z1_at_equlibrium
+h_3 = psi_deriv_z3_at_equlibrium
+
+import numpy as np
+
+ # values from question
+m_value = 0.425
+g_value = 9.81
+d_value = 0.42
+delta_value = 0.65
+r_value = 0.125
+R_value = 53
+L0_value = 0.12
+L1_value = 0.025
+alpha_value = 1.2
+c_value = 6.815
+k_value = 1880
+b_value = 10.4
+phi_value = np.deg2rad(42)
+
+
+
+#substituting a_1, a_2, a_3, h_1, h_2, h_3 symbols for values which include
+#  m, g, c, k, delta, d, phi, b, L0, L1, R, alpha
+
+a_1_value = float(a_1.subs([(m, m_value), (c, c_value), (k, k_value), (delta, delta_value), (d, d_value),
+                            (g, g_value), (phi,phi_value)]))
+a_2_value = float(a_2.subs([(b, b_value), (m, m_value)]))
+a_3_value = float(a_3.subs([(c, c_value), (m, m_value), (delta, delta_value), (d, d_value), (g, g_value),
+                            (phi,phi_value), (k, k_value)]))
+h_1_value = float(h_1.subs([(L0, L0_value), (alpha, alpha_value), (delta, delta_value), (L1, L1_value),(d, d_value),
+                            (g, g_value), (phi,phi_value), (k, k_value), (m, m_value)]))
+h_2_value = float(h_2.subs([(L0, L0_value), (alpha, alpha_value), (delta, delta_value), (L1, L1_value), (R, R_value)]))
+h_3_value = float(h_3.subs([(L0, L0_value), (alpha, alpha_value), (delta, delta_value), (L1, L1_value), (R, R_value),
+                            (d, d_value), (g, g_value), (phi,phi_value), (k, k_value), (m, m_value)]))
+
+import control as ctrl
+import matplotlib.pyplot as plt
+import numpy as np
+
+num_coeffs = [a_3_value*h_1_value]  # the numerator
+denom_coeffs = [1, -a_2_value-h_3_value, a_2_value*h_3_value-a_1_value, a_1_value*h_3_value] # the denominator
+
+
+G = ctrl.TransferFunction(num_coeffs, denom_coeffs)   
+                                                            
+
+def pd(kp, kd):
+    # This function constructs the transfer function of a PID
+    # controller with given parameters
+    diff = ctrl . TransferFunction([1, 0], 1)               # Transfer function 1*s
+    #intgr = ctrl . TransferFunction(1, [1, 0])              # Transfer Function 1/s
+    pd_tf = kp + kd * diff                   # sets transfer function as Kp +kds +ki/s
+    return pd_tf
+
+
+my_pd = pd(100, 100)               # kp =100, ki = 0.1, kd=9 PID parameter ust be negative
+
+
+tf_closed_loop_system = ctrl.feedback(G, my_pd)      # transfer function disturbance to theta
+t_final =0.03                                                # final time value 1second
+num_points=500                                              # sets the resolution
+
+
+t_imp, imp = ctrl.impulse_response(tf_closed_loop_system,np.linspace(0, t_final, num_points)) # poke the system
+#theta_imp_degrees =np.rad2deg(imp)        # converting theta_imp into degrees
+plt.plot(t_imp,imp)               # plotting theta against time
+plt.xlabel('time(s)')                           # labeling x axis
+plt.ylabel('x')                                 # labeling y axis
+plt.grid()                                      # displaying grid on graph
+plt.show()                                      # showing graph
